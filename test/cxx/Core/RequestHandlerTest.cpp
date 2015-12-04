@@ -873,7 +873,7 @@ namespace tut {
 		ensure_equals(buf.st_size, (off_t) 6);
 	}
 
-	TEST_METHOD(45) {
+	TEST_METHOD(44) {
 		set_test_name("If Content-Length is given, buffering is on, and request body is large:  "
 			"it passes Content-Length bytes of the request body.");
 
@@ -904,7 +904,7 @@ namespace tut {
 		ensure_equals(buf.st_size, (off_t) requestBody.size());
 	}
 
-	TEST_METHOD(46) {
+	TEST_METHOD(45) {
 		set_test_name("If Content-Length is given, buffering is on, and request body is small:  "
 			"it passes Content-Length bytes of the request body.");
 
@@ -930,7 +930,7 @@ namespace tut {
 		ensure_equals(buf.st_size, (off_t) requestBody.size());
 	}
 
-	TEST_METHOD(47) {
+	TEST_METHOD(46) {
 		set_test_name("If Content-Length is given, buffering is off, and request body is large: "
 			"it passes Content-Length bytes of the request body.");
 
@@ -963,7 +963,7 @@ namespace tut {
 		ensure_equals(buf.st_size, (off_t) requestBody.size());
 	}
 
-	TEST_METHOD(48) {
+	TEST_METHOD(47) {
 		set_test_name("If Content-Length is given, buffering is off, and request body is small: "
 			"it passes Content-Length bytes of the request body.");
 
@@ -989,7 +989,7 @@ namespace tut {
 		ensure_equals(buf.st_size, (off_t) requestBody.size());
 	}
 
-	TEST_METHOD(49) {
+	TEST_METHOD(48) {
 		set_test_name("If Transfer-Encoding is given and buffering is on:  "
 			"it keeps passing the request body until end of stream.");
 
@@ -1021,7 +1021,7 @@ namespace tut {
 		ensure_equals(buf.st_size, (off_t) requestBody.size());
 	}
 
-	TEST_METHOD(50) {
+	TEST_METHOD(49) {
 		set_test_name("If Transfer-Encoding is given and buffering is off: "
 			"it keeps passing the request body until end of stream.");
 
@@ -1052,11 +1052,68 @@ namespace tut {
 		ensure_equals(buf.st_size, (off_t) requestBody.size());
 	}
 
-	TEST_METHOD(51) {
+	TEST_METHOD(50) {
 		set_test_name("If Transfer-Encoding is given and the application socket uses the HTTP protocol, "
 			"rechunk the body when forwarding it to the application.");
 
 		fprintf(stderr, "TODO: implement test 51\n");
+	}
+
+	TEST_METHOD(51) {
+		set_test_name("It writes an appropriate response if the request times out in the queue.");
+
+		initPoolDebugging();
+		debug->restarting = false;
+		debug->spawning = false;
+		debug->testTimeoutRequestQueue = true;
+		init();
+		connect();
+		sendHeaders(defaultHeaders,
+			"PASSENGER_APP_ROOT", wsgiAppPath.c_str(),
+			"PATH_INFO", "/",
+			NULL);
+		string response = readAll(connection);
+		ensure(response.find("Status: 504 Gateway Timeout") != string::npos);
+		ensure(response.find("This website is under heavy load") != string::npos);
+	}
+
+	TEST_METHOD(52) {
+		set_test_name("It uses the status code dictated by PASSENGER_REQUEST_QUEUE_TIMEOUT_STATUS_CODE "
+			"if the request times out in the queue");
+
+		initPoolDebugging();
+		debug->restarting = false;
+		debug->spawning = false;
+		debug->testTimeoutRequestQueue = true;
+		init();
+		connect();
+		sendHeaders(defaultHeaders,
+			"PASSENGER_APP_ROOT", wsgiAppPath.c_str(),
+			"PATH_INFO", "/",
+			"PASSENGER_REQUEST_QUEUE_TIMEOUT_STATUS_CODE", "503",
+			NULL);
+		string response = readAll(connection);
+		ensure(response.find("Status: 503 Service Unavailable") != string::npos);
+		ensure(response.find("This website is under heavy load") != string::npos);
+	}
+
+	TEST_METHOD(53) {
+		set_test_name("PASSENGER_REQUEST_QUEUE_TIMEOUT_STATUS_CODE should work even if it is an unknown code");
+
+		initPoolDebugging();
+		debug->restarting = false;
+		debug->spawning = false;
+		debug->testTimeoutRequestQueue = true;
+		init();
+		connect();
+		sendHeaders(defaultHeaders,
+			"PASSENGER_APP_ROOT", wsgiAppPath.c_str(),
+			"PATH_INFO", "/",
+			"PASSENGER_REQUEST_QUEUE_TIMEOUT_STATUS_CODE", "604",
+			NULL);
+		string response = readAll(connection);
+		ensure(response.find("Status: 604 Unknown Reason-Phrase") != string::npos);
+		ensure(response.find("This website is under heavy load") != string::npos);
 	}
 
 	TEST_METHOD(54) {

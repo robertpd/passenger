@@ -242,6 +242,14 @@ Controller::reportSessionCheckoutError(Client *client, Request *req,
 		}
 	}
 	{
+		boost::shared_ptr<RequestQueueTimeoutException> e2 =
+			dynamic_pointer_cast<RequestQueueTimeoutException>(e);
+		if (e2 != NULL) {
+			writeRequestQueueTimeoutExceptionErrorResponse(client, req, e2);
+			return;
+		}
+	}
+	{
 		boost::shared_ptr<SpawnException> e2 = dynamic_pointer_cast<SpawnException>(e);
 		if (e2 != NULL) {
 			writeSpawnExceptionErrorResponse(client, req, e2);
@@ -251,6 +259,9 @@ Controller::reportSessionCheckoutError(Client *client, Request *req,
 	writeOtherExceptionErrorResponse(client, req, e);
 }
 
+/*
+ * Don't forget to add Exception to reportSessionCheckoutError above.
+ */
 void
 Controller::writeRequestQueueFullExceptionErrorResponse(Client *client, Request *req,
 	const boost::shared_ptr<RequestQueueFullException> &e)
@@ -273,6 +284,30 @@ Controller::writeRequestQueueFullExceptionErrorResponse(Client *client, Request 
 		"<p>We're sorry, too many people are accessing this website at the same "
 		"time. We're working on this problem. Please try again later.</p>",
 		requestQueueOverflowStatusCode);
+}
+
+void
+Controller::writeRequestQueueTimeoutExceptionErrorResponse(Client *client, Request *req,
+	const boost::shared_ptr<RequestQueueTimeoutException> &e)
+{
+	TRACE_POINT();
+	const LString *value = req->secureHeaders.lookup(
+		"!~PASSENGER_REQUEST_QUEUE_TIMEOUT_STATUS_CODE");
+	int requestQueueTimeoutStatusCode = 504;
+	if (value != NULL && value->size > 0) {
+		value = psg_lstr_make_contiguous(value, req->pool);
+		requestQueueTimeoutStatusCode = stringToInt(
+			StaticString(value->start->data, value->size));
+	}
+
+	SKC_WARN(client, "Returning HTTP " << requestQueueTimeoutStatusCode <<
+		" due to: " << e->what());
+
+	endRequestWithSimpleResponse(&client, &req,
+		"<h2>This website is under heavy load (request timed out)</h2>"
+		"<p>We're sorry, too many people are accessing this website at the same "
+		"time. We're working on this problem. Please try again later.</p>",
+		requestQueueTimeoutStatusCode);
 }
 
 void

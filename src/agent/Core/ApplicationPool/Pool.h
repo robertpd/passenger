@@ -242,6 +242,7 @@ public:
 		bool spawning;
 		bool oobw;
 		bool testOverflowRequestQueue;
+		bool testTimeoutRequestQueue;
 		bool detachedProcessesChecker;
 
 		// The following fields may only be accessed by Pool.
@@ -256,6 +257,7 @@ public:
 			oobw       = false;
 			detachedProcessesChecker = false;
 			testOverflowRequestQueue = false;
+			testTimeoutRequestQueue = false;
 			spawnLoopIteration = 0;
 		}
 	};
@@ -324,6 +326,7 @@ public:
 	void verifyExpensiveInvariants() const;
 	void fullVerifyInvariants() const;
 	void assignSessionsToGetWaiters(boost::container::vector<Callback> &postLockActions);
+	bool requestTimedOut(const GetWaiter &waiter);
 	template<typename Queue> static void assignExceptionToGetWaiters(Queue &getWaitlist,
 		const ExceptionPtr &exception,
 		boost::container::vector<Callback> &postLockActions);
