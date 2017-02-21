@@ -1,6 +1,6 @@
 /*
  *  Phusion Passenger - https://www.phusionpassenger.com/
- *  Copyright (c) 2014-2016 Phusion Holding B.V.
+ *  Copyright (c) 2014-2017 Phusion Holding B.V.
  *
  *  "Passenger", "Phusion Passenger" and "Union Station" are registered
  *  trademarks of Phusion Holding B.V.
@@ -351,6 +351,31 @@ byteSizeAndCountToJson(size_t size, unsigned int count) {
 	Json::Value doc = byteSizeToJson(size);
 	doc["count"] = count;
 	return doc;
+}
+
+
+
+/**************************************************************
+ *
+ * Methods for manipulating JSON.
+ *
+ **************************************************************/
+
+inline Json::Value
+jsonObjectRemoveKeyPrefix(const Json::Value &doc, const StaticString &prefix) {
+	Json::Value result(Json::objectValue);
+	Json::Value::const_iterator it, end = doc.end();
+
+	for (it = doc.begin(); it != end; it++) {
+		StaticString key = it.memberName();
+		if (key.substr(0, prefix.size()) == prefix) {
+			result[key.substr(prefix.size())] = *it;
+		} else {
+			result[key] = *it;
+		}
+	}
+
+	return result;
 }
 
 
